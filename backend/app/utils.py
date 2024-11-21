@@ -51,7 +51,20 @@ def analyze_job_posting(job_description: str) -> SearchKeywords:
 
 
 def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.DataFrame:
-    session_file = Path().resolve() / "session.pkl"
+    """Search LinkedIn for staff members, first with location then without if no results found."""
+     # Define multiple session files
+    session_files = [
+        Path().resolve() / "session.pkl",
+        Path().resolve() / "session2.pkl"
+    ]
+    
+    # Randomly select a session file
+    session_file = random.choice(session_files)
+    print(f"\nUsing session file: {session_file.name}")
+    
+    
+    
+    #session_file = Path().resolve() / "session.pkl"
     account = LinkedInAccount(
         session_file=str(session_file),
         log_level=1,
@@ -59,38 +72,54 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
 
     all_staff_data = []
 
-    # Make three separate searches for different role levels
-    for title in job_info["relevant_titles"]:
+    # First attempt: Search with location
+    print(f"\nSearching for staff in {job_info.location}...")
+    for title in job_info.relevant_titles:
         try:
             staff = account.scrape_staff(
-                company_name=job_info["company_name"],
+                company_name=job_info.company_name,
                 search_term=title,
-                location=job_info["location"],
+                location=job_info.location,
                 extra_profile_data=True,
                 max_results=max_results,
             )
-            # Convert staff data to DataFrame
             if not staff.empty:
-                staff["search_title"] = title  # Add the search title used
+                staff["search_title"] = title
                 all_staff_data.append(staff)
+                print(f"Found {len(staff)} results for {title}")
 
         except Exception as e:
             print(f"Error searching for {title}: {str(e)}")
             continue
 
+    # If no results found, try without location
+    if not all_staff_data:
+        print(f"\nNo results found in {job_info.location}. Searching globally...")
+        for title in job_info.relevant_titles:
+            try:
+                staff = account.scrape_staff(
+                    company_name=job_info.company_name,
+                    search_term=title,
+                    location=None,  # Remove location constraint
+                    extra_profile_data=True,
+                    max_results=max_results,
+                )
+                if not staff.empty:
+                    staff["search_title"] = title
+                    all_staff_data.append(staff)
+                    print(f"Found {len(staff)} results for {title}")
+
+            except Exception as e:
+                print(f"Error searching for {title}: {str(e)}")
+                continue
+
     # Combine all results into a single DataFrame
     if all_staff_data:
         final_df = pd.concat(all_staff_data, ignore_index=True)
-
-        # Remove duplicates based on profile URL or other unique identifier
-        # final_df = final_df.drop_duplicates(subset=['profileUrl'], keep='first')
-
-        # Save to CSV for testing
-        # output_file = Path().resolve() / "linkedin_contacts.csv"
-        # final_df.to_csv(str(output_file), index=False)
-
+        print(f"\nTotal unique profiles found: {len(final_df)}")
         return final_df
     else:
+        print("\nNo results found in any search.")
         return pd.DataFrame()  # Return empty DataFrame if no results
 
 
@@ -228,10 +257,87 @@ def score_profiles(
         """
         ),
     ]
+    if not profiles_df.empty:
+        try:
+            response = llm.with_structured_output(BatchProfileScoring).invoke(messages)
+            return response.scored_profiles  # Return top 10 profiles
+        except Exception as e:
+            print(f"Error scoring profiles: {str(e)}")
+            return []
+    else:
+        print("Sorry, no profiles found for scoring for this job.")
+
+
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import pickle
+import time
+import requests
+from dotenv import load_dotenv, find_dotenv
+import os
+
+load_dotenv(find_dotenv())
+
+
+def set_csrf_token(session):
+    print("Setting CSRF token...")
+    csrf_token = session.cookies.get("JSESSIONID", "").replace('"', "")
+    if csrf_token:
+        print(f"CSRF token: {csrf_token}")
+        session.headers.update({"Csrf-Token": csrf_token})
+    else:
+        print("CSRF token not found in cookies.")
+    return session
+
+
+def save_session(session, session_file: str):
+    data = {"cookies": session.cookies, "headers": session.headers}
+    with open(session_file, "wb") as f:
+        pickle.dump(data, f)
+
+
+def save_linkedin_cookies(username: str, password: str,file_name: str):
+    options = webdriver.ChromeOptions()
+    options.add_argument("--disable-gpu")
+
+    driver = webdriver.Chrome(options=options)
 
     try:
-        response = llm.with_structured_output(BatchProfileScoring).invoke(messages)
-        return response.scored_profiles  # Return top 10 profiles
+        driver.get("https://www.linkedin.com/login")
+
+        email = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "username"))
+        )
+        email.send_keys(username)
+
+        password = driver.find_element(By.ID, "password")
+        password.send_keys(password)
+
+        login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+        login_button.click()
+
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "global-nav"))
+        )
+
+        time.sleep(5)
+
+        selenium_cookies = driver.get_cookies()
+        session = requests.Session()
+
+        for cookie in selenium_cookies:
+            session.cookies.set(cookie["name"], cookie["value"])
+
+        session = set_csrf_token(session)
+        save_session(session, file_name)
+
+        print("Session data saved successfully!")
+
     except Exception as e:
-        print(f"Error scoring profiles: {str(e)}")
-        return []
+        print(f"An error occurred: {str(e)}")
+
+    finally:
+        driver.quit()
