@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import ast
 from typing import List
+import random
 
 load_dotenv()  # Load environment variables
 
@@ -55,7 +56,7 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
      # Define multiple session files
     session_files = [
         Path().resolve() / "session.pkl",
-        Path().resolve() / "session2.pkl"
+        # Path().resolve() / "session2.pkl"
     ]
     
     # Randomly select a session file
@@ -73,13 +74,13 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
     all_staff_data = []
 
     # First attempt: Search with location
-    print(f"\nSearching for staff in {job_info.location}...")
-    for title in job_info.relevant_titles:
+    print(f"\nSearching for staff in {job_info['location']}...")
+    for title in job_info['relevant_titles']:
         try:
             staff = account.scrape_staff(
-                company_name=job_info.company_name,
+                company_name=job_info['company_name'],
                 search_term=title,
-                location=job_info.location,
+                location=job_info['location'],
                 extra_profile_data=True,
                 max_results=max_results,
             )
@@ -94,11 +95,11 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
 
     # If no results found, try without location
     if not all_staff_data:
-        print(f"\nNo results found in {job_info.location}. Searching globally...")
-        for title in job_info.relevant_titles:
+        print(f"\nNo results found in {job_info['location']}. Searching globally...")
+        for title in job_info['relevant_titles']:
             try:
                 staff = account.scrape_staff(
-                    company_name=job_info.company_name,
+                    company_name=job_info['company_name'],
                     search_term=title,
                     location=None,  # Remove location constraint
                     extra_profile_data=True,
@@ -121,7 +122,6 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
     else:
         print("\nNo results found in any search.")
         return pd.DataFrame()  # Return empty DataFrame if no results
-
 
 def format_profile_data(profiles_df: pd.DataFrame) -> str:
     """Format profile data into a clean, readable string format for the LLM."""
@@ -182,7 +182,7 @@ def format_profile_data(profiles_df: pd.DataFrame) -> str:
 
 
 def score_profiles(
-    profiles_df: pd.DataFrame, job_info: SearchKeywords
+    profile_str: str, job_info: SearchKeywords
 ) -> List[ProfileScore]:
     """Score profiles based on relevance to job summary."""
 
@@ -251,13 +251,13 @@ def score_profiles(
         Job Summary: {job_info['job_summary']}
         
         Profiles to Evaluate:
-        {profiles_df}
+        {profile_str}
         
         Return the results as a JSON array of objects with the specified fields.
         """
         ),
     ]
-    if not profiles_df.empty:
+    if profile_str:
         try:
             response = llm.with_structured_output(BatchProfileScoring).invoke(messages)
             return response.scored_profiles  # Return top 10 profiles
@@ -266,6 +266,7 @@ def score_profiles(
             return []
     else:
         print("Sorry, no profiles found for scoring for this job.")
+        return []
 
 
 

@@ -73,6 +73,7 @@ async def find_people(request: PeopleSearchRequest):
             new_profile["current_position"] = contact_data.get("current_position", "")
             new_profile["profile_link"] = contact_data.get("profile_link", "")
             new_profile["profile_photo"] = contact_data.get("profile_photo", "")
+            new_profile["potential_emails"] = contact_data.get("potential_emails", [])
         updated_profiles.append(new_profile)
 
     return updated_profiles
