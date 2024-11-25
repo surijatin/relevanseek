@@ -12,15 +12,15 @@ export function Home() {
   const [isLoadingStep2, setIsLoadingStep2] = useState<boolean>(false);
   const [jobDetails, setJobDetails] = useState<JobDetailsType | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [error, setError] = useState<string>("");
+  const [searchAreaError, setSearchAreaError] = useState<string>("");
+  const [jobDetailsError, setJobDetailsError] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setSearchAreaError("");
     setJobDetails(null);
     setProfiles([]);
 
-    let respJobDetails = null;
     // Step 1: Get job details
     setIsLoadingStep1(true);
     try {
@@ -36,14 +36,19 @@ export function Home() {
         throw new Error("Network response was not ok");
       }
 
-      respJobDetails = await response.json();
+      const respJobDetails = await response.json();
       setJobDetails(respJobDetails);
     } catch (error) {
       console.error("Error fetching job details", error);
-      setError("Failed to fetch job details. Please try again.");
+      setSearchAreaError("Failed to fetch job details. Please try again.");
     } finally {
       setIsLoadingStep1(false);
     }
+  };
+
+  const handleConfirm = async (updatedDetails: JobDetailsType) => {
+    setJobDetailsError("");
+    setProfiles([]);
 
     // Step 2: Get matching profiles
     setIsLoadingStep2(true);
@@ -56,11 +61,11 @@ export function Home() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            company_name: respJobDetails?.company_name,
-            target_role: respJobDetails?.target_role,
-            relevant_titles: respJobDetails?.relevant_titles,
-            location: respJobDetails?.location,
-            job_summary: respJobDetails?.job_summary,
+            company_name: updatedDetails.company_name,
+            target_role: updatedDetails.target_role,
+            relevant_titles: updatedDetails.relevant_titles,
+            location: updatedDetails.location,
+            job_summary: updatedDetails.job_summary,
           }),
         }
       );
@@ -72,17 +77,20 @@ export function Home() {
       const matchingProfiles: Profile[] = await responseProfiles.json();
       setProfiles(matchingProfiles);
     } catch {
-      setError("Failed to fetch matching profiles. Please try again.");
+      setJobDetailsError(
+        "Failed to fetch matching profiles. Please try again."
+      );
     } finally {
       setIsLoadingStep2(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#DFF2EB] to-[#B9E5E8] py-12">
+    <div className="min-h-screen bg-[#faf7ec] py-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-5xl font-extrabold mb-10 text-[#7AB2D3] text-center tracking-wide drop-shadow-lg">
-          Relevan<span className="text-[#4A628A]">Seek</span>
+        <h1 className="text-5xl mb-10 text-[#111827] text-center tracking-wide drop-shadow-lg font-montserrat ">
+          Relevan
+          <span className="text-[#1f40ed] font-semibold">Seek</span>
         </h1>
 
         <SearchArea
@@ -90,11 +98,15 @@ export function Home() {
           jobDescription={jobDescription}
           setJobDescription={setJobDescription}
           isLoadingStep1={isLoadingStep1}
-          isLoadingStep2={isLoadingStep2}
-          error={error}
+          error={searchAreaError}
         />
 
-        <JobDetails jobDetails={jobDetails} />
+        <JobDetails
+          jobDetails={jobDetails}
+          onConfirm={handleConfirm}
+          error={jobDetailsError}
+          isLoadingStep2={isLoadingStep2}
+        />
 
         <MatchingProfiles profiles={profiles} />
       </div>

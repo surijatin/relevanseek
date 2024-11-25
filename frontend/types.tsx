@@ -15,4 +15,5 @@ export interface Profile {
   relevance_score: number;
   profile_link: string;
   reasoning: string;
+  potential_emails: string[];
 }
