@@ -7,16 +7,19 @@ from app.utils import (
     format_profile_data,
     score_profiles,
 )
+import os
+
+allow_origins = os.getenv("ALLOWED_ORIGINS").split(",")
 
 app = FastAPI(title="RelevanSeek API Service", version="0.1.0")
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Adjust this to your frontend's origin
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

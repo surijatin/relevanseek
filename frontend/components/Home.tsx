@@ -24,13 +24,16 @@ export function Home() {
     // Step 1: Get job details
     setIsLoadingStep1(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/fetch-details", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ jd: jobDescription }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/fetch-details`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ jd: jobDescription }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -54,7 +57,7 @@ export function Home() {
     setIsLoadingStep2(true);
     try {
       const responseProfiles = await fetch(
-        "http://127.0.0.1:8000/find-people",
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/find-people`,
         {
           method: "POST",
           headers: {
