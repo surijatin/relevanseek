@@ -6,8 +6,6 @@ backend/.venv/
 backend/.env
 backend/ENV/
 
-backend/session.pkl
-
 # Python cache files
 __pycache__/
 *.py[cod]
