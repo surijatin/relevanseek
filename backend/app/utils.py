@@ -56,16 +56,13 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
      # Define multiple session files
     session_files = [
         Path().resolve() / "session.pkl",
-        # Path().resolve() / "session2.pkl"
+        Path().resolve() / "session2.pkl"
     ]
     
     # Randomly select a session file
     session_file = random.choice(session_files)
     print(f"\nUsing session file: {session_file.name}")
-    
-    
-    
-    #session_file = Path().resolve() / "session.pkl"
+
     account = LinkedInAccount(
         session_file=str(session_file),
         log_level=1,
