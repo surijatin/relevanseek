@@ -55,7 +55,7 @@ async def find_people(request: PeopleSearchRequest):
 
     # Perform the LinkedIn staff search
     contacts_df = search_linkedin_staff(job_info, max_results=10)
-    contacts_df.to_csv("contacts_df.csv", index=False)
+    # contacts_df.to_csv("contacts_df.csv", index=False)
     formatted_profiles = format_profile_data(contacts_df)
 
     # Score the profiles based on the job information
