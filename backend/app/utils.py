@@ -143,17 +143,16 @@ def format_profile_data(profiles_df: pd.DataFrame) -> str:
 
             # Format experiences (take most recent 2)
             experiences_formatted = []
-            for exp in experiences[:2]:
-                exp_str = f"{exp.get('title', 'N/A')} at {exp.get('company', 'N/A')} ({exp.get('duration', 'N/A')})"
-                experiences_formatted.append(exp_str)
+            if experiences:
+                for exp in experiences[:2]:
+                    exp_str = f"{exp.get('title', 'N/A')} at {exp.get('company', 'N/A')} ({exp.get('duration', 'N/A')})"
+                    experiences_formatted.append(exp_str)
+           
             experiences_str = " | ".join(experiences_formatted)
-
+           
             # Format skills (take top 10)
-            skills_formatted = [
-                skill.get("name", "")
-                for skill in skills[:10]
-                if isinstance(skill, dict)
-            ]
+            if skills:
+                skills_formatted = [skill.get('name', '') for skill in skills[:10] if isinstance(skill, dict)]
             skills_str = ", ".join(skills_formatted)
 
             # Create formatted profile string
