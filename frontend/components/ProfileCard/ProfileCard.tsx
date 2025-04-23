@@ -34,7 +34,9 @@ const ProfileCard = ({ profile }: { profile: Profile }) => (
       </p>
       <p className="text-sm text-[#111827]">
         <span className="underline">Potential Emails:</span>{" "}
-        {profile.potential_emails.join(", ")}
+        {profile.potential_emails
+          ? profile.potential_emails.join(", ")
+          : "No emails available"}
       </p>
       <div className="space-y-1 w-1/2">
         <p className="text-xs text-[#4b5563]">

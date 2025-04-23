@@ -44,7 +44,7 @@ const SearchArea: React.FC<SearchAreaProps> = ({
     <Card className="mb-8 bg-white shadow-lg border border-[#1f40ed]">
       <CardHeader>
         <CardTitle className="block text-lg font-bold text-[#111827] mb-2 tracking-wide font-montserrat">
-          Job Details
+          Job Description
         </CardTitle>
       </CardHeader>
       <CardContent>
