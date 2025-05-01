@@ -43,40 +43,56 @@ async def fetch_details(request: JobDetailsRequest):
 
 @app.post("/find-people")
 async def find_people(request: PeopleSearchRequest):
-    # Extract job information from the request
-    
-    job_info = {
-        "company_name": request.company_name,
-        "target_role": request.target_role,
-        "relevant_titles": request.relevant_titles,
-        "location": request.location,
-        "job_summary": request.job_summary,
-    }
+    try:
+        # Extract job information from the request
+        job_info = {
+            "company_name": request.company_name,
+            "target_role": request.target_role,
+            "relevant_titles": request.relevant_titles,
+            "location": request.location,
+            "job_summary": request.job_summary,
+        }
 
-    # Perform the LinkedIn staff search
-    contacts_df = search_linkedin_staff(job_info, max_results=10)
-    # contacts_df.to_csv("contacts_df.csv", index=False)
-    formatted_profiles = format_profile_data(contacts_df)
+        # Perform the LinkedIn staff search
+        contacts_df = search_linkedin_staff(job_info, max_results=10)
+        
+        # Return early with helpful message if no contacts found
+        if contacts_df.empty:
+            return {"error": "No LinkedIn contacts found for the provided job information."}
+            
+        # contacts_df.to_csv("contacts_df.csv", index=False)
+        formatted_profiles = format_profile_data(contacts_df)
 
-    # Score the profiles based on the job information
-    scored_profiles = score_profiles(formatted_profiles, job_info)
+        # Score the profiles based on the job information
+        scored_profiles = score_profiles(formatted_profiles, job_info)
 
-    # Append additional data from contacts_df to scored_profiles based on profile_id
-    updated_profiles = []
+        # Return early if no profiles were scored
+        if not scored_profiles:
+            return {"error": "No relevant profiles found for scoring."}
 
-    for scored_profile in scored_profiles:
-        new_profile = (
-            scored_profile.dict()
-        )  # Convert to dictionary for easier manipulation
-        profile_id = new_profile["profile_id"]
-        contact = contacts_df.loc[contacts_df["profile_id"] == profile_id]
-        if not contact.empty:
-            contact_data = contact.iloc[0]
-            new_profile["headline"] = contact_data.get("headline", "")
-            new_profile["current_position"] = contact_data.get("current_position", "")
-            new_profile["profile_link"] = contact_data.get("profile_link", "")
-            new_profile["profile_photo"] = contact_data.get("profile_photo", "")
-            new_profile["potential_emails"] = contact_data.get("potential_emails", [])
-        updated_profiles.append(new_profile)
+        # Append additional data from contacts_df to scored_profiles based on profile_id
+        updated_profiles = []
 
-    return updated_profiles
+        for scored_profile in scored_profiles:
+            new_profile = (
+                scored_profile.dict()
+            )  # Convert to dictionary for easier manipulation
+            profile_id = new_profile["profile_id"]
+            contact = contacts_df.loc[contacts_df["profile_id"] == profile_id]
+            if not contact.empty:
+                contact_data = contact.iloc[0]
+                new_profile["headline"] = contact_data.get("headline", "")
+                new_profile["current_position"] = contact_data.get("current_position", "")
+                new_profile["profile_link"] = contact_data.get("profile_link", "")
+                new_profile["profile_photo"] = contact_data.get("profile_photo", "")
+                new_profile["potential_emails"] = contact_data.get("potential_emails", [])
+            updated_profiles.append(new_profile)
+
+        return updated_profiles
+    except Exception as e:
+        import traceback
+        error_message = f"Error in find-people endpoint: {str(e)}"
+        error_traceback = traceback.format_exc()
+        print(error_message)
+        print(error_traceback)
+        return {"error": error_message, "details": str(e)}

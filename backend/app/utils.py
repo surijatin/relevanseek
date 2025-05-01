@@ -9,6 +9,7 @@ import ast
 from typing import List
 import random
 import base64
+import os
 
 load_dotenv()  # Load environment variables
 
@@ -58,9 +59,11 @@ def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.Data
     env_session_files = load_session_from_env()
     
     # Define session files
+    # Use /tmp directory for serverless environments
+    tmp_dir = "/tmp" if os.path.exists("/tmp") else str(Path().resolve())
     local_session_files = [
-        Path().resolve() / "session.pkl",
-        Path().resolve() / "session2.pkl"
+        Path(tmp_dir) / "session.pkl",
+        Path(tmp_dir) / "session2.pkl"
     ]
     
     # Use env files if available, otherwise use local files
@@ -284,7 +287,6 @@ import pickle
 import time
 import requests
 from dotenv import load_dotenv, find_dotenv
-import os
 
 load_dotenv(find_dotenv())
 
@@ -355,16 +357,19 @@ def load_session_from_env():
     
     session_files = []
     
+    # Use /tmp directory for serverless environments
+    tmp_dir = "/tmp" if os.path.exists("/tmp") else str(Path().resolve())
+    
     if session_env:
-        # Decode and save session.pkl
-        session_path = Path().resolve() / "session.pkl"
+        # Decode and save session.pkl to /tmp directory
+        session_path = Path(tmp_dir) / "session.pkl"
         with open(session_path, "wb") as f:
             f.write(base64.b64decode(session_env))
         session_files.append(session_path)
     
     if session2_env:
-        # Decode and save session2.pkl
-        session2_path = Path().resolve() / "session2.pkl"
+        # Decode and save session2.pkl to /tmp directory
+        session2_path = Path(tmp_dir) / "session2.pkl"
         with open(session2_path, "wb") as f:
             f.write(base64.b64decode(session2_env))
         session_files.append(session2_path)
