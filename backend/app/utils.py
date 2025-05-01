@@ -8,6 +8,7 @@ import pandas as pd
 import ast
 from typing import List
 import random
+import base64
 
 load_dotenv()  # Load environment variables
 
@@ -53,13 +54,22 @@ def analyze_job_posting(job_description: str) -> SearchKeywords:
 
 def search_linkedin_staff(job_info: SearchKeywords, max_results: int) -> pd.DataFrame:
     """Search LinkedIn for staff members, first with location then without if no results found."""
-     # Define multiple session files
-    session_files = [
+    # Check for environment variables first
+    env_session_files = load_session_from_env()
+    
+    # Define session files
+    local_session_files = [
         Path().resolve() / "session.pkl",
         Path().resolve() / "session2.pkl"
     ]
     
+    # Use env files if available, otherwise use local files
+    session_files = env_session_files if env_session_files else local_session_files
+
     # Randomly select a session file
+    if not session_files:
+        raise Exception("No session files available. Please set up LinkedIn sessions.")
+
     session_file = random.choice(session_files)
     print(f"\nUsing session file: {session_file.name}")
 
@@ -338,3 +348,25 @@ def save_linkedin_cookies(username: str, password: str,file_name: str):
 
     finally:
         driver.quit()
+
+def load_session_from_env():
+    session_env = os.environ.get("LINKEDIN_SESSION_BASE64")
+    session2_env = os.environ.get("LINKEDIN_SESSION2_BASE64")
+    
+    session_files = []
+    
+    if session_env:
+        # Decode and save session.pkl
+        session_path = Path().resolve() / "session.pkl"
+        with open(session_path, "wb") as f:
+            f.write(base64.b64decode(session_env))
+        session_files.append(session_path)
+    
+    if session2_env:
+        # Decode and save session2.pkl
+        session2_path = Path().resolve() / "session2.pkl"
+        with open(session2_path, "wb") as f:
+            f.write(base64.b64decode(session2_env))
+        session_files.append(session2_path)
+    
+    return session_files
