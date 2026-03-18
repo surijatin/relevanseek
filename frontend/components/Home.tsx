@@ -77,9 +77,16 @@ export function Home() {
         throw new Error("Network response was not ok");
       }
 
-      const matchingProfiles: Profile[] = await responseProfiles.json();
-      setProfiles(matchingProfiles);
-    } catch {
+      const result = await responseProfiles.json();
+
+      if (result.error) {
+        setJobDetailsError(result.error);
+        setProfiles([]);
+      } else {
+        setProfiles(result);
+      }
+    } catch (error) {
+      console.error("Error fetching matching profiles", error);
       setJobDetailsError(
         "Failed to fetch matching profiles. Please try again."
       );

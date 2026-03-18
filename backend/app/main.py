@@ -1,3 +1,9 @@
+import os
+from dotenv import load_dotenv, find_dotenv
+
+# This forces Python to read the .env file in your folder
+load_dotenv(find_dotenv())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import JobDetailsRequest, PeopleSearchRequest
@@ -7,9 +13,9 @@ from app.utils import (
     format_profile_data,
     score_profiles,
 )
-import os
+import ast
 
-allow_origins = os.getenv("ALLOWED_ORIGINS").split(",")
+allow_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 
 app = FastAPI(title="RelevanSeek API Service", version="0.1.0")
 
@@ -82,10 +88,29 @@ async def find_people(request: PeopleSearchRequest):
             if not contact.empty:
                 contact_data = contact.iloc[0]
                 new_profile["headline"] = contact_data.get("headline", "")
-                new_profile["current_position"] = contact_data.get("current_position", "")
+                
+                # Use headline as fallback for current_position if it's None or empty
+                fetched_position = contact_data.get("current_position")
+                if not fetched_position or fetched_position == "None":
+                    new_profile["current_position"] = new_profile.get("headline", "")
+                else:
+                    new_profile["current_position"] = fetched_position
+                
                 new_profile["profile_link"] = contact_data.get("profile_link", "")
                 new_profile["profile_photo"] = contact_data.get("profile_photo", "")
-                new_profile["potential_emails"] = contact_data.get("potential_emails", [])
+                
+                # Handle potential emails - ensure it's a list
+                emails = contact_data.get("potential_emails")
+                if isinstance(emails, list):
+                    new_profile["potential_emails"] = emails
+                elif isinstance(emails, str) and emails.startswith("["):
+                    try:
+                        new_profile["potential_emails"] = ast.literal_eval(emails)
+                    except:
+                        new_profile["potential_emails"] = [emails]
+                else:
+                    new_profile["potential_emails"] = [emails] if emails else []
+                    
             updated_profiles.append(new_profile)
 
         return updated_profiles
