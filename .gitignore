@@ -33,3 +33,7 @@ env/
 .DS_Store
 
 *.pkl
+
+# Extra
+Gemini.md
+.env
